@@ -34,13 +34,13 @@ func TestModel(t *testing.T) {
 
 	UserModel.PublicFields = []string{"name"}
 
-	// delete all users
-	_, err := UserModel.Native().DeleteMany(context.TODO(), bson.M{})
-	if err != nil {
-		t.Error(err)
-	}
+	var CreateTestUser = func() User {
+		// delete all users
+		_, err := UserModel.Native().DeleteMany(context.TODO(), bson.M{})
+		if err != nil {
+			t.Error(err)
+		}
 
-	var createUserIfNotExists = func() User {
 		// create user
 		newUser := User{
 			ID:   NewId(),
@@ -48,7 +48,7 @@ func TestModel(t *testing.T) {
 			Age:  20,
 		}
 
-		_, err := UserModel.Native().InsertOne(context.TODO(), newUser)
+		_, err = UserModel.Native().InsertOne(context.TODO(), newUser)
 		if err != nil {
 			t.Error(err)
 		}
@@ -56,7 +56,7 @@ func TestModel(t *testing.T) {
 		return newUser
 	}
 
-	newUser := createUserIfNotExists()
+	newUser := CreateTestUser()
 	var newUserMap bson.M = structToMapWithTags(newUser, "bson")
 
 	// Test `FindOne`
@@ -106,11 +106,40 @@ func TestModel(t *testing.T) {
 		// check if user is deleted
 		_, err = UserModel.FindOne(bson.M{"_id": newUser.ID})
 		assert.True(t, IsNoDocumentsError(err))
+
+		// recreate user
+		newUser = CreateTestUser()
+	})
+
+	// Test `UpdateOne`
+	t.Run("Update One", func(t *testing.T) {
+		// update user
+		updated, err := UserModel.UpdateOne(
+			bson.M{"_id": newUser.ID},
+			bson.M{"$set": bson.M{"name": "Jack"}},
+		)
+
+		if err != nil {
+			t.Error(err)
+		}
+
+		assert.Equal(t, updated.ModifiedCount, int64(1))
+
+		// check if user is updated
+		updatedUser, err := UserModel.FindOne(bson.M{"_id": newUser.ID})
+		if err != nil {
+			t.Error(err)
+		}
+
+		assert.Equal(t, updatedUser.Name, "Jack")
+
+		// recreate test user
+		newUser = CreateTestUser()
 	})
 
 	// Test `FindOneAsHelper`
 	t.Run("Find One As Helper", func(t *testing.T) {
-		newUser = createUserIfNotExists()
+		newUser = CreateTestUser()
 		user, err := UserModel.FindOneAsHelper(bson.M{"_id": newUser.ID})
 
 		if err != nil {
