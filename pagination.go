@@ -3,6 +3,7 @@ package gmongo
 import (
 	"context"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"math"
 )
 
@@ -53,6 +54,49 @@ func (coll *Model[T]) PaginateAggregate(page int, perPage int, query []interface
 	return &Paginated[any]{
 		Meta: PaginatedMeta{
 			Total:    totalCount,
+			PerPage:  perPage,
+			Page:     page,
+			LastPage: lastPage,
+		},
+		Data: results,
+	}, nil
+}
+
+// Paginate - Paginate Find
+func (coll *Model[T]) Paginate(
+	page int,
+	perPage int,
+	query bson.M,
+	opts ...*options.FindOptions,
+) (*Paginated[any], error) {
+	// get total count
+	totalCount, err := coll.Native().CountDocuments(context.TODO(), query)
+	if err != nil {
+		return nil, err
+	}
+
+	// ceil total/perPage
+	lastPage := int(math.Ceil(float64(totalCount) / float64(perPage)))
+	skip := (page - 1) * perPage
+
+	// build options
+	opts = append(opts, options.Find().SetSkip(int64(skip)).SetLimit(int64(perPage)))
+
+	// find
+	cursor, err := coll.Native().Find(context.TODO(), query, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	// get results
+	var results = make([]bson.M, 0)
+	if err = cursor.All(context.TODO(), &results); err != nil {
+		return nil, err
+	}
+
+	return &Paginated[any]{
+		Meta: PaginatedMeta{
+			Total:    int(totalCount),
 			PerPage:  perPage,
 			Page:     page,
 			LastPage: lastPage,

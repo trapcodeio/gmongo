@@ -1,6 +1,19 @@
 package gmongo
 
-import "reflect"
+import (
+	"reflect"
+	"strings"
+)
+
+func removeStringFromStringIfExists(str string, remove string) string {
+	// first check length
+	if len(str) < len(remove) {
+		return str
+	}
+
+	// Use strings.Replace to remove the substring
+	return strings.Replace(str, remove, "", -1)
+}
 
 func structToMapWithTags(obj interface{}, tag string) map[string]interface{} {
 	res := map[string]interface{}{}
@@ -16,14 +29,17 @@ func structToMapWithTags(obj interface{}, tag string) map[string]interface{} {
 	}
 
 	for i := 0; i < v.NumField(); i++ {
-		tag := v.Field(i).Tag.Get(tag)
+		key := v.Field(i).Tag.Get(tag)
+
+		// remove omitempty
+		key = removeStringFromStringIfExists(key, ",omitempty")
 
 		field := reflectValue.Field(i).Interface()
-		if tag != "" && tag != "-" {
+		if key != "" && key != "-" {
 			if v.Field(i).Type.Kind() == reflect.Struct {
-				res[tag] = structToMapWithTags(field, tag)
+				res[key] = structToMapWithTags(field, tag)
 			} else {
-				res[tag] = field
+				res[key] = field
 			}
 		}
 	}

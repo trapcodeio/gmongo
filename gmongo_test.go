@@ -22,7 +22,7 @@ func (a *User) IsModel() bool {
 }
 
 func TestModel(t *testing.T) {
-	client := test_ConnectToDb()
+	client := testConnectToDb()
 
 	// create model
 	UserModel := MakeModel[*User](client.Database, "users")

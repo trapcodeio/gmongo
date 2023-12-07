@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func test_ConnectToDb() *Client {
+func testConnectToDb() *Client {
 	// connect to db
 	client, err := ConnectUsingString("mongodb://localhost:27017", "gmongo")
 	if err != nil {
