@@ -52,15 +52,9 @@ func (coll *Model[T]) FindOne(filter interface{}, opts ...*options.FindOneOption
 	return result, nil
 }
 
-// FindOneAsHelper - Find one document and decode it into the same struct
-func (coll *Model[T]) FindOneAsHelper(filter interface{}, opts ...*options.FindOneOptions) (ModelHelper[T], error) {
-	result, err := coll.FindOne(filter, opts...)
-
-	if err != nil {
-		return ModelHelper[T]{}, err
-	}
-
-	return GetModelHelper(*coll, result), nil
+// FindOneById - Find one document by ID
+func (coll *Model[T]) FindOneById(id primitive.ObjectID, opts ...*options.FindOneOptions) (T, error) {
+	return coll.FindOne(bson.M{"_id": id}, opts...)
 }
 
 // DeleteOne Delete - Delete model from database
@@ -170,4 +164,15 @@ func (coll *Model[T]) FindAs(result interface{}, filter interface{}, opts ...*op
 	}
 
 	return nil
+}
+
+// FindOneAsHelper - Find one document and decode it into the same struct
+func (coll *Model[T]) FindOneAsHelper(filter interface{}, opts ...*options.FindOneOptions) (ModelHelper[T], error) {
+	result, err := coll.FindOne(filter, opts...)
+
+	if err != nil {
+		return ModelHelper[T]{}, err
+	}
+
+	return GetModelHelper(*coll, result), nil
 }
