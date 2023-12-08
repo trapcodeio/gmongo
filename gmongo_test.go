@@ -14,9 +14,10 @@ import (
 */
 
 type User struct {
-	ID   primitive.ObjectID `bson:"_id"`
-	Name string             `bson:"name"`
-	Age  int                `bson:"age"`
+	ID       primitive.ObjectID `bson:"_id"`
+	Name     string             `bson:"name"`
+	Age      int                `bson:"age"`
+	Verified bool               `bson:"verified"`
 }
 
 func (a *User) GetID() primitive.ObjectID {
@@ -32,28 +33,37 @@ func TestModel(t *testing.T) {
 		t.Error("Model is nil")
 	}
 
-	UserModel.PublicFields = []string{"name"}
+	UserModel.PublicFields = []string{"name", "verified"}
 
-	var CreateTestUser = func() User {
+	var DeleteAllUsers = func() {
 		// delete all users
 		_, err := UserModel.Native().DeleteMany(context.TODO(), bson.M{})
 		if err != nil {
 			t.Error(err)
 		}
+	}
+
+	var CreateTestUserWithoutDeletingOldUsers = func() User {
 
 		// create user
 		newUser := User{
-			ID:   NewId(),
-			Name: "John",
-			Age:  20,
+			ID:       NewId(),
+			Name:     "John",
+			Age:      20,
+			Verified: true,
 		}
 
-		_, err = UserModel.Native().InsertOne(context.TODO(), newUser)
+		_, err := UserModel.Native().InsertOne(context.TODO(), newUser)
 		if err != nil {
 			t.Error(err)
 		}
 
 		return newUser
+	}
+
+	var CreateTestUser = func() User {
+		DeleteAllUsers()
+		return CreateTestUserWithoutDeletingOldUsers()
 	}
 
 	newUser := CreateTestUser()
@@ -137,6 +147,147 @@ func TestModel(t *testing.T) {
 		newUser = CreateTestUser()
 	})
 
+	// Test `Count`
+	t.Run("Count", func(t *testing.T) {
+		count, err := UserModel.Count(bson.M{})
+		if err != nil {
+			t.Error(err)
+		}
+
+		assert.Equal(t, count, int64(1))
+
+		CreateTestUserWithoutDeletingOldUsers()
+		CreateTestUserWithoutDeletingOldUsers()
+
+		// new count must be 3
+		count, err = UserModel.Count(bson.M{})
+		if err != nil {
+			t.Error(err)
+		}
+
+		assert.Equal(t, count, int64(3))
+	})
+
+	// Test `CountAggregate`
+	t.Run("Count Aggregate", func(t *testing.T) {
+		newUser = CreateTestUser()
+
+		count, err := UserModel.CountAggregate(bson.A{})
+		if err != nil {
+			t.Error(err)
+		}
+
+		assert.Equal(t, count, 1)
+
+		CreateTestUserWithoutDeletingOldUsers()
+		CreateTestUserWithoutDeletingOldUsers()
+		CreateTestUserWithoutDeletingOldUsers()
+
+		// new count must be 5
+		count, err = UserModel.CountAggregate(bson.A{})
+		if err != nil {
+			t.Error(err)
+		}
+
+		assert.Equal(t, count, 4)
+	})
+
+	// Test `ProjectPublicFields`
+	t.Run("Project Public Fields", func(t *testing.T) {
+		projection := UserModel.ProjectPublicFields()
+		assert.EqualValues(t, projection, bson.M{"_id": 0, "name": 1, "verified": 1})
+	})
+
+	// Test `ProjectPublicFieldsAnd`
+	t.Run("Project Public Fields And", func(t *testing.T) {
+		projection := UserModel.ProjectPublicFieldsAnd([]string{"age"})
+		assert.EqualValues(t, projection, bson.M{"_id": 0, "name": 1, "verified": 1, "age": 1})
+	})
+
+	// Test `ProjectPublicFieldsWithout`
+	t.Run("Project Public Fields Without", func(t *testing.T) {
+		projection := UserModel.ProjectPublicFieldsWithout([]string{"verified"})
+		assert.EqualValues(t, projection, bson.M{"_id": 0, "name": 1})
+	})
+
+	// Test `GetPublicFields`
+	t.Run("Get Public Fields", func(t *testing.T) {
+		publicFields := UserModel.GetPublicFields(&newUser)
+		assert.EqualValues(t, publicFields, bson.M{"name": "John", "verified": true})
+	})
+
+	// Test `GetPublicFieldsAnd`
+	t.Run("Get Public Fields And", func(t *testing.T) {
+		publicFields := UserModel.GetPublicFieldsAnd(&newUser, func(data bson.M) bson.M {
+			data["age"] = 20
+			return data
+		})
+		assert.EqualValues(t, publicFields, bson.M{"name": "John", "verified": true, "age": 20})
+	})
+
+	// Test `Helpers`
+	t.Run("Helpers", func(t *testing.T) {
+		userHelper := UserModel.Helpers(&newUser)
+		assert.IsType(t, ModelHelper[*User]{}, userHelper)
+	})
+
+	// Test `Aggregate`
+	t.Run("Aggregate", func(t *testing.T) {
+		newUser = CreateTestUser()
+
+		// aggregate
+		aggregate, err := UserModel.Aggregate(bson.A{
+			bson.M{"$match": bson.M{"_id": newUser.ID}},
+			bson.M{"$project": Projection.OmitIdAndPick([]string{"name"})},
+		})
+
+		if err != nil {
+			t.Error(err)
+		}
+
+		assert.EqualValues(t, aggregate[0], bson.M{"name": "John"})
+	})
+
+	// Test `Find`
+	t.Run("Find", func(t *testing.T) {
+		newUser = CreateTestUser()
+
+		// find
+		results, err := UserModel.Find(bson.M{"_id": newUser.ID})
+		if err != nil {
+			t.Error(err)
+		}
+
+		assert.Equal(t, results[0], &User{
+			ID:       newUser.ID,
+			Name:     "John",
+			Age:      20,
+			Verified: true,
+		})
+	})
+
+	// Test `FindAs`
+	t.Run("Find As", func(t *testing.T) {
+		newUser = CreateTestUser()
+		type NameOnly struct {
+			Name string `bson:"name"`
+		}
+
+		// find
+		var results []NameOnly
+		err := UserModel.FindAs(
+			&results,
+			bson.M{"_id": newUser.ID},
+			options.Find().SetProjection(Projection.OmitIdAndPick([]string{"name"})),
+		)
+
+		if err != nil {
+			t.Error(err)
+		}
+
+		assert.Equal(t, results[0], NameOnly{"John"})
+	})
+
 	// Test `FindOneAsHelper`
 	t.Run("Find One As Helper", func(t *testing.T) {
 		newUser = CreateTestUser()
@@ -152,7 +303,7 @@ func TestModel(t *testing.T) {
 		// Test `GetPublicFields`
 		t.Run("Get Public Fields", func(t *testing.T) {
 			publicFields := user.GetPublicFields()
-			assert.EqualValues(t, publicFields, bson.M{"name": "John"})
+			assert.EqualValues(t, publicFields, bson.M{"name": "John", "verified": true})
 		})
 
 		// Test `GetID`
