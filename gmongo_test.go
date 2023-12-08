@@ -69,6 +69,13 @@ func TestModel(t *testing.T) {
 	newUser := CreateTestUser()
 	var newUserMap bson.M = structToMapWithTags(newUser, "bson")
 
+	var CreateMultipleTestUsers = func(length int) {
+		newUser = CreateTestUser()
+		for i := 0; i < (length - 1); i++ {
+			CreateTestUserWithoutDeletingOldUsers()
+		}
+	}
+
 	// Test `FindOne`
 	t.Run("Find One", func(t *testing.T) {
 		user, err := UserModel.FindOneById(newUser.ID)
@@ -286,6 +293,42 @@ func TestModel(t *testing.T) {
 		}
 
 		assert.Equal(t, results[0], NameOnly{"John"})
+	})
+
+	// Test `Paginate`
+	t.Run("Paginate", func(t *testing.T) {
+		CreateMultipleTestUsers(10)
+
+		// paginate
+		paginated, err := UserModel.Paginate(1, 5, bson.M{})
+		if err != nil {
+			t.Error(err)
+		}
+
+		assert.Equal(t, paginated.Meta, PaginatedMeta{
+			Total:    10,
+			PerPage:  5,
+			Page:     1,
+			LastPage: 2,
+		})
+	})
+
+	// Test `PaginateAggregate`
+	t.Run("Paginate Aggregate", func(t *testing.T) {
+		CreateMultipleTestUsers(10)
+
+		// paginate
+		paginated, err := UserModel.PaginateAggregate(1, 5, bson.A{})
+		if err != nil {
+			t.Error(err)
+		}
+
+		assert.Equal(t, paginated.Meta, PaginatedMeta{
+			Total:    10,
+			PerPage:  5,
+			Page:     1,
+			LastPage: 2,
+		})
 	})
 
 	// Test `FindOneAsHelper`
