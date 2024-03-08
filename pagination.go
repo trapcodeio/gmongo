@@ -9,9 +9,9 @@ import (
 
 type PaginatedMeta struct {
 	Total    int `json:"total"`
-	PerPage  int `json:"per_page"`
+	PerPage  int `json:"perPage"`
 	Page     int `json:"page"`
-	LastPage int `json:"last_page"`
+	LastPage int `json:"lastPage"`
 }
 
 type Paginated[T any] struct {
