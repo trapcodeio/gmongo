@@ -72,6 +72,23 @@ func (coll *Model[T]) Count(filter interface{}, opts ...*options.CountOptions) (
 	return coll.Native().CountDocuments(context.TODO(), filter, opts...)
 }
 
+// Exists - Check if document exists
+func (coll *Model[T]) Exists(filter interface{}) (bool, error) {
+	var res bson.M
+
+	// Project only ID so that mongodb doesn't have to read disk.
+	// only relevant if query is ID
+	err := coll.FindOneAs(&res, filter, options.FindOne().SetProjection(bson.M{"_id": 1}))
+	if err != nil {
+		if IsNoDocumentsError(err) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
+}
+
 // CountAggregate - Count aggregate
 func (coll *Model[T]) CountAggregate(pipeline interface{}, opts ...*options.AggregateOptions) (int, error) {
 	cursor, err := coll.Native().Aggregate(context.TODO(), pipeline, opts...)

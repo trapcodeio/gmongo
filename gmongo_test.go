@@ -199,6 +199,23 @@ func TestModel(t *testing.T) {
 		assert.Equal(t, count, 4)
 	})
 
+	// Test `Exists`
+	t.Run("Exists", func(t *testing.T) {
+		exists, err := UserModel.Exists(bson.M{"_id": newUser.ID})
+		if err != nil {
+			t.Error(err)
+		}
+
+		assert.True(t, exists)
+
+		exists, err = UserModel.Exists(bson.M{"_id": NewId()})
+		if err != nil {
+			t.Error(err)
+		}
+
+		assert.False(t, exists)
+	})
+
 	// Test `ProjectPublicFields`
 	t.Run("Project Public Fields", func(t *testing.T) {
 		projection := UserModel.ProjectPublicFields()
