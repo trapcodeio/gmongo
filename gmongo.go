@@ -24,8 +24,8 @@ type Model[T ModelData] struct {
 
 // CreateModel - Create a new model with default values
 // Note: Created model will not have a collection and will throw an error if `.Native()` is called
-func CreateModel[T ModelData](collectionName string) Model[T] {
-	return Model[T]{
+func CreateModel[T ModelData](collectionName string) *Model[T] {
+	return &Model[T]{
 		CollectionName: collectionName,
 		PublicFields:   []string{},
 		Native: func() *mongo.Collection {

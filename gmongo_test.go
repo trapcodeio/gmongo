@@ -28,7 +28,10 @@ func TestModel(t *testing.T) {
 	client := testConnectToDb()
 
 	// create model
-	UserModel := MakeModel[*User](client.Database, "users")
+	//UserModel := MakeModel[*User](client.Database, "users")
+	UserModel := CreateModel[*User]("users")
+	LinkModel(UserModel, client.Database)
+
 	if UserModel.Native() == nil {
 		t.Error("Model is nil")
 	}
