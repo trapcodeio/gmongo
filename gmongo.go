@@ -54,7 +54,7 @@ func MakeModel[T ModelData](db *mongo.Database, collectionName string) Model[T] 
 }
 
 // LinkModel - Link model to a database
-func LinkModel[T ModelData](model Model[T], db *mongo.Database) Model[T] {
+func LinkModel[T ModelData](model *Model[T], db *mongo.Database) {
 	// check if collection name is empty
 	if model.CollectionName == "" {
 		panic("Collection name is empty")
@@ -66,8 +66,6 @@ func LinkModel[T ModelData](model Model[T], db *mongo.Database) Model[T] {
 	model.Native = func() *mongo.Collection {
 		return collection
 	}
-
-	return model
 }
 
 // FindOneAs - Find one document and decode it into a different struct
