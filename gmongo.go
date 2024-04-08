@@ -2,6 +2,7 @@ package gmongo
 
 import (
 	"context"
+	"fmt"
 	"github.com/gookit/goutil/arrutil"
 	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/bson"
@@ -16,10 +17,25 @@ type ModelData interface {
 }
 
 type Model[T ModelData] struct {
-	Native       func() *mongo.Collection
-	PublicFields []string
+	CollectionName string
+	PublicFields   []string
+	Native         func() *mongo.Collection
 }
 
+// CreateModel - Create a new model with default values
+// Note: Created model will not have a collection and will throw an error if `.Native()` is called
+func CreateModel[T ModelData](collectionName string) Model[T] {
+	return Model[T]{
+		CollectionName: collectionName,
+		PublicFields:   []string{},
+		Native: func() *mongo.Collection {
+			// Throw connection not linked error
+			panic(fmt.Sprintf("Model is not linked to a database. Collection name: [%s]", collectionName))
+		},
+	}
+}
+
+// MakeModel - Create a new model with a database connection
 func MakeModel[T ModelData](db *mongo.Database, collectionName string) Model[T] {
 	// check if collection name is empty
 	if collectionName == "" {
@@ -29,9 +45,29 @@ func MakeModel[T ModelData](db *mongo.Database, collectionName string) Model[T] 
 	collection := db.Collection(collectionName)
 
 	return Model[T]{
+		CollectionName: collectionName,
+		PublicFields:   []string{},
 		Native: func() *mongo.Collection {
 			return collection
-		}}
+		},
+	}
+}
+
+// LinkModel - Link model to a database
+func LinkModel[T ModelData](model Model[T], db *mongo.Database) Model[T] {
+	// check if collection name is empty
+	if model.CollectionName == "" {
+		panic("Collection name is empty")
+	}
+
+	collection := db.Collection(model.CollectionName)
+
+	// Replace the native function with the actual collection
+	model.Native = func() *mongo.Collection {
+		return collection
+	}
+
+	return model
 }
 
 // FindOneAs - Find one document and decode it into a different struct
