@@ -27,6 +27,19 @@ func (coll *Model[T]) PaginateAggregate(page int, perPage int, query []interface
 		return nil, err
 	}
 
+	// if no results
+	if totalCount == 0 {
+		return &Paginated[any]{
+			Meta: PaginatedMeta{
+				Total:    0,
+				PerPage:  perPage,
+				Page:     page,
+				LastPage: 0,
+			},
+			Data: []bson.M{},
+		}, nil
+	}
+
 	// ceil total/perPage
 	lastPage := int(math.Ceil(float64(totalCount) / float64(perPage)))
 	skip := (page - 1) * perPage
@@ -66,13 +79,26 @@ func (coll *Model[T]) PaginateAggregate(page int, perPage int, query []interface
 func (coll *Model[T]) Paginate(
 	page int,
 	perPage int,
-	query bson.M,
+	query interface{},
 	opts ...*options.FindOptions,
 ) (*Paginated[any], error) {
 	// get total count
 	totalCount, err := coll.Native().CountDocuments(context.TODO(), query)
 	if err != nil {
 		return nil, err
+	}
+
+	// if no results
+	if totalCount == 0 {
+		return &Paginated[any]{
+			Meta: PaginatedMeta{
+				Total:    0,
+				PerPage:  perPage,
+				Page:     page,
+				LastPage: 0,
+			},
+			Data: []bson.M{},
+		}, nil
 	}
 
 	// ceil total/perPage
