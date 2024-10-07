@@ -227,3 +227,69 @@ func (coll *Model[T]) FindOneAsHelper(filter interface{}, opts ...*options.FindO
 
 	return GetModelHelper(*coll, result), nil
 }
+
+// SumMany - Sum many documents
+//
+// Example:
+// Data: [
+//
+//	{name: "John", credit: 100, debit: 400},
+//	{name: "Doe", credit: 200, debit: 300},
+//
+// ]
+//
+//	sum, _ := UserModel.SumMany([]string{"credit", "debit"})
+//	// sum will be {credit: 300, debit: 700}
+func (coll *Model[T]) SumMany(keys []string, filter interface{}) (bson.M, error) {
+	group := bson.M{"_id": nil}
+	result := bson.M{}
+
+	for _, key := range keys {
+		group[key] = bson.M{"$sum": fmt.Sprintf("$%s", key)}
+		result[key] = 0
+	}
+
+	pipeline := bson.A{}
+	if filter != nil {
+		pipeline = append(pipeline, bson.M{"$match": filter})
+	}
+
+	pipeline = append(pipeline, bson.M{"$group": group})
+
+	res, err := coll.Aggregate(pipeline)
+	if err != nil {
+		return result, err
+	}
+
+	data := res[0]
+	for key, value := range data {
+		// if key is not in result, skip
+		if _, ok := result[key]; !ok {
+			continue
+		}
+
+		result[key] = int(value.(int32))
+	}
+
+	return result, nil
+}
+
+// Sum - Sum documents
+//
+// Example:
+// Data: [
+//
+//	{name: "John", credit: 100, debit: 400},
+//	{name: "Doe", credit: 200, debit: 300},
+//
+// ]
+// sum, _ := UserModel.Sum("credit", nil)
+// // sum will be 300
+func (coll *Model[T]) Sum(key string, filter interface{}) (int, error) {
+	res, err := coll.SumMany([]string{key}, filter)
+	if err != nil {
+		return 0, err
+	}
+
+	return res[key].(int), nil
+}
