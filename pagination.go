@@ -66,7 +66,7 @@ func (coll *Model[T]) PaginateAggregate(page int, perPage int, query []interface
 
 	return &Paginated[any]{
 		Meta: PaginatedMeta{
-			Total:    totalCount,
+			Total:    int(totalCount),
 			PerPage:  perPage,
 			Page:     page,
 			LastPage: lastPage,

@@ -123,14 +123,35 @@ func (coll *Model[T]) Exists(filter interface{}) (bool, error) {
 	return true, nil
 }
 
-// CountAggregate - Count aggregate
-func (coll *Model[T]) CountAggregate(pipeline interface{}, opts ...*options.AggregateOptions) (int, error) {
-	cursor, err := coll.Native().Aggregate(context.TODO(), pipeline, opts...)
+// CountAggregate - Count documents in database using an aggregation pipeline
+func (coll *Model[T]) CountAggregate(pipeline []interface{}, opts ...*options.AggregateOptions) (int, error) {
+	// Append a $count stage to the pipeline
+	countPipeline := append(pipeline, bson.D{{"$count", "count"}})
+
+	// Run the aggregation
+	cursor, err := coll.Native().Aggregate(context.TODO(), countPipeline, opts...)
 	if err != nil {
 		return 0, err
 	}
+	defer cursor.Close(context.TODO())
 
-	return cursor.RemainingBatchLength(), nil
+	// Get the result
+	var result struct {
+		Count int64 `bson:"count"`
+	}
+	if cursor.Next(context.TODO()) {
+		err = cursor.Decode(&result)
+		if err != nil {
+			return 0, err
+		}
+		return int(result.Count), nil
+	}
+
+	// If no documents matched, return 0
+	if err := cursor.Err(); err != nil {
+		return 0, err
+	}
+	return 0, nil
 }
 
 // ProjectPublicFields - Project public fields
