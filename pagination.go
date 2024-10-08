@@ -22,14 +22,14 @@ type Paginated[T any] struct {
 // PaginateAggregate - Paginate aggregate
 func (coll *Model[T]) PaginateAggregateWithCountQuery(page int, perPage int, countQuery interface{}, query []interface{}) (*Paginated[any], error) {
 	// get total count
-	totalCount := 0
+	totalCount := int64(0)
 	if countQuery != nil {
 		count, err := coll.Count(countQuery)
 		if err != nil {
 			return nil, err
 		}
 
-		totalCount = int(count)
+		totalCount = count
 	} else {
 		count, err := coll.CountAggregate(query)
 		if err != nil {

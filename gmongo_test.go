@@ -380,7 +380,7 @@ func TestModel(t *testing.T) {
 		CreateMultipleTestUsers(10)
 
 		// paginate
-		paginated, err := UserModel.PaginateAggregateWithCountQuery(1, 5, bson.A{}, bson.M{})
+		paginated, err := UserModel.PaginateAggregateWithCountQuery(1, 5, bson.M{}, bson.A{})
 		if err != nil {
 			t.Error(err)
 		}

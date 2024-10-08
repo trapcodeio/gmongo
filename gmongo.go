@@ -124,7 +124,7 @@ func (coll *Model[T]) Exists(filter interface{}) (bool, error) {
 }
 
 // CountAggregate - Count documents in database using an aggregation pipeline
-func (coll *Model[T]) CountAggregate(pipeline []interface{}, opts ...*options.AggregateOptions) (int, error) {
+func (coll *Model[T]) CountAggregate(pipeline []interface{}, opts ...*options.AggregateOptions) (int64, error) {
 	// Append a $count stage to the pipeline
 	countPipeline := append(pipeline, bson.D{{"$count", "count"}})
 
@@ -144,7 +144,7 @@ func (coll *Model[T]) CountAggregate(pipeline []interface{}, opts ...*options.Ag
 		if err != nil {
 			return 0, err
 		}
-		return int(result.Count), nil
+		return result.Count, nil
 	}
 
 	// If no documents matched, return 0
