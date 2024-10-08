@@ -12,7 +12,7 @@ go get github.com/trapcodeio/gmongo
 For now, see the tests for usage examples.
 
 ## Test
-Make sure you have a MongoDB instance running on localhost:27017
+Make sure you have a MongoDB instance running on localhost:27017K
 
 ```bash
 go test -v
