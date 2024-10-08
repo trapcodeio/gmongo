@@ -20,11 +20,23 @@ type Paginated[T any] struct {
 }
 
 // PaginateAggregate - Paginate aggregate
-func (coll *Model[T]) PaginateAggregate(page int, perPage int, query []interface{}) (*Paginated[any], error) {
+func (coll *Model[T]) PaginateAggregateWithCountQuery(page int, perPage int, query []interface{}, countQuery interface{}) (*Paginated[any], error) {
 	// get total count
-	totalCount, err := coll.CountAggregate(query)
-	if err != nil {
-		return nil, err
+	totalCount := 0
+	if countQuery != nil {
+		count, err := coll.Count(countQuery)
+		if err != nil {
+			return nil, err
+		}
+
+		totalCount = int(count)
+	} else {
+		count, err := coll.CountAggregate(query)
+		if err != nil {
+			return nil, err
+		}
+
+		totalCount = count
 	}
 
 	// if no results
@@ -73,6 +85,10 @@ func (coll *Model[T]) PaginateAggregate(page int, perPage int, query []interface
 		},
 		Data: results,
 	}, nil
+}
+
+func (coll *Model[T]) PaginateAggregate(page int, perPage int, query []interface{}) (*Paginated[any], error) {
+	return coll.PaginateAggregateWithCountQuery(page, perPage, query, nil)
 }
 
 // Paginate - Paginate Find

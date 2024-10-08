@@ -375,6 +375,24 @@ func TestModel(t *testing.T) {
 		})
 	})
 
+	// Test `PaginateAggregateWithCountQuery`
+	t.Run("Paginate Aggregate With Count Query", func(t *testing.T) {
+		CreateMultipleTestUsers(10)
+
+		// paginate
+		paginated, err := UserModel.PaginateAggregateWithCountQuery(1, 5, bson.A{}, bson.M{})
+		if err != nil {
+			t.Error(err)
+		}
+
+		assert.Equal(t, paginated.Meta, PaginatedMeta{
+			Total:    10,
+			PerPage:  5,
+			Page:     1,
+			LastPage: 2,
+		})
+	})
+
 	// Test `FindOneAsHelper`
 	t.Run("Find One As Helper", func(t *testing.T) {
 		newUser = CreateTestUser()
