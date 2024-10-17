@@ -282,6 +282,14 @@ func (coll *Model[T]) SumMany(keys []string, filter interface{}) (bson.M, error)
 		return result, err
 	}
 
+	if len(res) == 0 {
+		for _, key := range keys {
+			result[key] = 0
+		}
+
+		return result, nil
+	}
+
 	data := res[0]
 	for key, value := range data {
 		// if key is not in result, skip
