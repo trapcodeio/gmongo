@@ -190,8 +190,8 @@ func (coll *Model[T]) GetPublicFieldsAnd(model ModelData, interceptor func(data 
 }
 
 // Helpers - get model helper
-func (coll *Model[T]) Helpers(model T) ModelHelper[T] {
-	return GetModelHelper(*coll, model)
+func (coll *Model[T]) Helpers(model T) *ModelHelper[T] {
+	return GetModelHelper(coll, &model)
 }
 
 // Aggregate - Aggregate
@@ -239,14 +239,14 @@ func (coll *Model[T]) FindAs(result interface{}, filter interface{}, opts ...*op
 }
 
 // FindOneAsHelper - Find one document and decode it into the same struct
-func (coll *Model[T]) FindOneAsHelper(filter interface{}, opts ...*options.FindOneOptions) (ModelHelper[T], error) {
+func (coll *Model[T]) FindOneAsHelper(filter interface{}, opts ...*options.FindOneOptions) (*ModelHelper[T], error) {
 	result, err := coll.FindOne(filter, opts...)
 
 	if err != nil {
-		return ModelHelper[T]{}, err
+		return nil, err
 	}
 
-	return GetModelHelper(*coll, result), nil
+	return GetModelHelper(coll, &result), nil
 }
 
 // SumMany - Sum many documents

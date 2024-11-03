@@ -279,7 +279,7 @@ func TestModel(t *testing.T) {
 	// Test `Helpers`
 	t.Run("Helpers", func(t *testing.T) {
 		userHelper := UserModel.Helpers(&newUser)
-		assert.IsType(t, ModelHelper[*User]{}, userHelper)
+		assert.IsType(t, ModelHelper[*User]{}, *userHelper)
 	})
 
 	// Test `Aggregate`
