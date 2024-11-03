@@ -24,7 +24,7 @@ func GetModelHelper[T ModelData](model *Model[T], data *T) *ModelHelper[T] {
 
 // GetPublicFields - Get the public fields of a model instance
 func (m ModelHelper[T]) GetPublicFields() bson.M {
-	modelMap := structToMapWithTags(m.Data, "bson")
+	modelMap := structToMapWithTags(*m.Data, "bson")
 	return lo.PickByKeys(modelMap, m.Model.PublicFields)
 }
 

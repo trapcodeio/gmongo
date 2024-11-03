@@ -278,8 +278,11 @@ func TestModel(t *testing.T) {
 
 	// Test `Helpers`
 	t.Run("Helpers", func(t *testing.T) {
+
 		userHelper := UserModel.Helpers(&newUser)
 		assert.IsType(t, ModelHelper[*User]{}, *userHelper)
+
+		assert.EqualValues(t, userHelper.GetPublicFields(), bson.M{"name": "John", "verified": true})
 	})
 
 	// Test `Aggregate`
