@@ -187,7 +187,7 @@ func TestModel(t *testing.T) {
 			t.Error(err)
 		}
 
-		assert.Equal(t, count, 1)
+		assert.Equal(t, count, int64(1))
 
 		CreateTestUserWithoutDeletingOldUsers()
 		CreateTestUserWithoutDeletingOldUsers()
@@ -199,7 +199,7 @@ func TestModel(t *testing.T) {
 			t.Error(err)
 		}
 
-		assert.Equal(t, count, 4)
+		assert.Equal(t, count, int64(4))
 	})
 
 	// Test `SumMany`
@@ -429,7 +429,7 @@ func TestModel(t *testing.T) {
 		}
 
 		// user must be type of ModelHelper
-		assert.IsType(t, ModelHelper[*User]{}, user)
+		assert.IsType(t, &ModelHelper[*User]{}, user)
 
 		// Test `GetPublicFields`
 		t.Run("Get Public Fields", func(t *testing.T) {
