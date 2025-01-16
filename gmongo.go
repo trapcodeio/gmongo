@@ -16,6 +16,11 @@ type ModelData interface {
 	GetID() primitive.ObjectID
 }
 
+// Number constraint for allowed numeric types
+type Number interface {
+	~int | ~int32 | ~int64 | ~float32 | ~float64
+}
+
 type Model[T ModelData] struct {
 	CollectionName string
 	PublicFields   []string
@@ -259,48 +264,23 @@ func (coll *Model[T]) FindOneAsHelper(filter interface{}, opts ...*options.FindO
 //
 // ]
 //
-//	sum, _ := UserModel.SumMany([]string{"credit", "debit"})
+//	sum, _ := UserModel.SumMany(int(0), []string{"credit", "debit"})
 //	// sum will be {credit: 300, debit: 700}
-func (coll *Model[T]) SumMany(keys []string, filter interface{}) (bson.M, error) {
-	group := bson.M{"_id": nil}
-	result := bson.M{}
-
-	for _, key := range keys {
-		group[key] = bson.M{"$sum": fmt.Sprintf("$%s", key)}
-		result[key] = 0
+func (coll *Model[T]) SumMany(resType interface{}, keys []string, filter interface{}) (bson.M, error) {
+	switch resType.(type) {
+	case int:
+		return SumMany[int](coll, keys, filter)
+	case int32:
+		return SumMany[int32](coll, keys, filter)
+	case int64:
+		return SumMany[int64](coll, keys, filter)
+	case float32:
+		return SumMany[float32](coll, keys, filter)
+	case float64:
+		return SumMany[float64](coll, keys, filter)
+	default:
+		return bson.M{}, fmt.Errorf("unsupported type")
 	}
-
-	pipeline := bson.A{}
-	if filter != nil {
-		pipeline = append(pipeline, bson.M{"$match": filter})
-	}
-
-	pipeline = append(pipeline, bson.M{"$group": group})
-
-	res, err := coll.Aggregate(pipeline)
-	if err != nil {
-		return result, err
-	}
-
-	if len(res) == 0 {
-		for _, key := range keys {
-			result[key] = 0
-		}
-
-		return result, nil
-	}
-
-	data := res[0]
-	for key, value := range data {
-		// if key is not in result, skip
-		if _, ok := result[key]; !ok {
-			continue
-		}
-
-		result[key] = int(value.(int32))
-	}
-
-	return result, nil
 }
 
 // Sum - Sum documents
@@ -312,13 +292,15 @@ func (coll *Model[T]) SumMany(keys []string, filter interface{}) (bson.M, error)
 //	{name: "Doe", credit: 200, debit: 300},
 //
 // ]
-// sum, _ := UserModel.Sum("credit", nil)
+// sum, _ := UserModel.Sum(float64(0), "credit", nil)
 // // sum will be 300
 func (coll *Model[T]) Sum(key string, filter interface{}) (int, error) {
-	res, err := coll.SumMany([]string{key}, filter)
-	if err != nil {
-		return 0, err
-	}
+	return Sum[int](coll, key, filter)
+}
 
-	return res[key].(int), nil
+// SumFloat - Sum documents and return float
+//
+// Same as Sum but returns float
+func (coll *Model[T]) SumFloat(key string, filter interface{}) (float64, error) {
+	return Sum[float64](coll, key, filter)
 }

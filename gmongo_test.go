@@ -206,7 +206,7 @@ func TestModel(t *testing.T) {
 	t.Run("Sum Many", func(t *testing.T) {
 		newUser = CreateTestUser()
 
-		sum, err := UserModel.SumMany([]string{"age"}, bson.M{})
+		sum, err := UserModel.SumMany(0, []string{"age"}, bson.M{})
 		if err != nil {
 			t.Error(err)
 		}
@@ -218,12 +218,35 @@ func TestModel(t *testing.T) {
 		CreateTestUserWithoutDeletingOldUsers()
 
 		// new sum must be 60
-		sum, err = UserModel.SumMany([]string{"age"}, bson.M{})
+		sum, err = UserModel.SumMany(0, []string{"age"}, bson.M{})
 		if err != nil {
 			t.Error(err)
 		}
 
 		assert.EqualValues(t, sum, bson.M{"age": 80})
+	})
+
+	t.Run("Sum", func(t *testing.T) {
+		newUser = CreateTestUser()
+
+		sum, err := UserModel.Sum("age", bson.M{})
+		if err != nil {
+			t.Error(err)
+		}
+
+		assert.EqualValues(t, sum, 20)
+
+		CreateTestUserWithoutDeletingOldUsers()
+		CreateTestUserWithoutDeletingOldUsers()
+		CreateTestUserWithoutDeletingOldUsers()
+
+		// new sum must be 60
+		sum, err = UserModel.Sum("age", bson.M{})
+		if err != nil {
+			t.Error(err)
+		}
+
+		assert.EqualValues(t, sum, 80)
 	})
 
 	// Test `Exists`
