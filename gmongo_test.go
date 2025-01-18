@@ -419,6 +419,25 @@ func TestModel(t *testing.T) {
 		})
 	})
 
+	// Test `PaginateAggregateRaw`
+	t.Run("Paginate Aggregate Raw", func(t *testing.T) {
+		CreateMultipleTestUsers(10)
+
+		// paginate
+		paginated, err := UserModel.PaginateAggregateRaw(1, 5, nil)
+
+		if err != nil {
+			t.Error(err)
+		}
+
+		assert.Equal(t, paginated.Meta, PaginatedMeta{
+			Total:    10,
+			PerPage:  5,
+			Page:     1,
+			LastPage: 2,
+		})
+	})
+
 	// Test `FindOneAsHelper`
 	t.Run("Find One As Helper", func(t *testing.T) {
 		newUser = CreateTestUser()
