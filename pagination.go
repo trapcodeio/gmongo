@@ -148,9 +148,9 @@ func (coll *Model[T]) Paginate(
 }
 
 type PaginateAggregateOptions struct {
-	MatchQuery  interface{}
-	BeforeQuery []interface{}
-	AfterQuery  []interface{}
+	Match       interface{}
+	BeforeLimit []bson.M
+	AfterLimit  []bson.M
 	Total       *int64
 }
 
@@ -164,8 +164,8 @@ func (coll *Model[T]) PaginateAggregateRaw(page int, perPage int, Opt *PaginateA
 		opt = *Opt
 	}
 
-	if opt.MatchQuery == nil {
-		opt.MatchQuery = bson.M{}
+	if opt.Match == nil {
+		opt.Match = bson.M{}
 	}
 
 	// get total count
@@ -173,7 +173,7 @@ func (coll *Model[T]) PaginateAggregateRaw(page int, perPage int, Opt *PaginateA
 	if opt.Total != nil {
 		totalCount = *opt.Total
 	} else {
-		count, err := coll.Count(opt.MatchQuery)
+		count, err := coll.Count(opt.Match)
 		if err != nil {
 			return nil, err
 		}
@@ -199,12 +199,12 @@ func (coll *Model[T]) PaginateAggregateRaw(page int, perPage int, Opt *PaginateA
 	skip := (page - 1) * perPage
 
 	// add skip and limit to query
-	query := make([]interface{}, 0)
-	query = append(query, bson.M{"$match": opt.MatchQuery})
-	query = append(query, opt.BeforeQuery...)
+	query := make([]bson.M, 0)
+	query = append(query, bson.M{"$match": opt.Match})
+	query = append(query, opt.BeforeLimit...)
 	query = append(query, bson.M{"$skip": skip})
 	query = append(query, bson.M{"$limit": perPage})
-	query = append(query, opt.AfterQuery...)
+	query = append(query, opt.AfterLimit...)
 
 	// find
 	cursor, err := coll.Native().Aggregate(
