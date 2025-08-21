@@ -2,6 +2,8 @@ package gmongo
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -326,6 +328,30 @@ func TestModel(t *testing.T) {
 		assert.EqualValues(t, aggregate[0], bson.M{"name": "John"})
 	})
 
+	// Test `AggregateAs`
+	t.Run("AggregateAs", func(t *testing.T) {
+		newUser = CreateTestUser()
+
+		type Result struct {
+			Name string `bson:"name"`
+		}
+
+		var res []Result
+
+		// aggregate
+		err := UserModel.AggregateAs(&res, bson.A{
+			bson.M{"$match": bson.M{"_id": newUser.ID}},
+			bson.M{"$project": Projection.OmitIdAndPick([]string{"name"})},
+		})
+
+		if err != nil {
+			t.Error(err)
+		}
+
+		assert.EqualValues(t, res[0].Name, "John")
+		assert.EqualValues(t, structToMapWithTags(res[0], "bson"), bson.M{"name": "John"})
+	})
+
 	// Test `Find`
 	t.Run("Find", func(t *testing.T) {
 		newUser = CreateTestUser()
@@ -512,4 +538,17 @@ func TestModel(t *testing.T) {
 			assert.True(t, IsNoDocumentsError(err))
 		})
 	})
+}
+
+// jsonL - Print json with a label
+func jsonL(label string, obj interface{}) {
+	fmt.Println(label + " =>")
+
+	jsonBytes, err := json.MarshalIndent(obj, "", "  ")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println(string(jsonBytes))
 }

@@ -215,6 +215,20 @@ func (coll *Model[T]) Aggregate(pipeline interface{}, opts ...*options.Aggregate
 	return results, nil
 }
 
+// AggregateAs - Aggregate with custom
+func (coll *Model[T]) AggregateAs(result interface{}, pipeline interface{}, opts ...*options.AggregateOptions) error {
+	cursor, err := coll.Native().Aggregate(context.TODO(), pipeline, opts...)
+	if err != nil {
+		return err
+	}
+
+	if err = cursor.All(context.TODO(), result); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Find - Find documents
 func (coll *Model[T]) Find(filter interface{}, opts ...*options.FindOptions) ([]T, error) {
 	var results = make([]T, 0)
