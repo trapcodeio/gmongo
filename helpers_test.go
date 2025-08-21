@@ -2,11 +2,12 @@ package gmongo
 
 import (
 	"errors"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"testing"
-	"time"
 )
 
 // Test `DateTimeNow` function

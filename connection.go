@@ -3,9 +3,10 @@ package gmongo
 import (
 	"context"
 	"errors"
+	"strings"
+
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"strings"
 )
 
 type Client struct {

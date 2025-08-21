@@ -2,9 +2,10 @@ package gmongo
 
 import (
 	"context"
+	"math"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"math"
 )
 
 type PaginatedMeta struct {
@@ -19,7 +20,7 @@ type Paginated[T any] struct {
 	Data T             `json:"data"`
 }
 
-// PaginateAggregate - Paginate aggregate
+// PaginateAggregateWithCountQuery - Paginate aggregate with count query
 func (coll *Model[T]) PaginateAggregateWithCountQuery(page int, perPage int, countQuery interface{}, query []interface{}) (*Paginated[any], error) {
 	// get total count
 	totalCount := int64(0)

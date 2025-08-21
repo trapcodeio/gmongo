@@ -43,11 +43,13 @@ func omitIdAndPick(keys []string) map[string]any {
 // In order to avoid polluting the xmongo package with a lot of functions
 // We group them into a struct
 
+type projectionFunc func(keys []string) map[string]any
+
 var Projection = struct {
-	OmitKeys      func(keys []string) map[string]any
-	PickKeys      func(keys []string) map[string]any
-	OmitIdAnd     func(keys []string) map[string]any
-	OmitIdAndPick func(keys []string) map[string]any
+	OmitKeys      projectionFunc
+	PickKeys      projectionFunc
+	OmitIdAnd     projectionFunc
+	OmitIdAndPick projectionFunc
 }{
 	OmitKeys:      omitKeys,
 	PickKeys:      pickKeys,
