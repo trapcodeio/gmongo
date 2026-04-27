@@ -2,12 +2,19 @@ package gmongo
 
 import (
 	"context"
+	"os"
 	"testing"
 )
 
+// testConnectToDb opens a test connection. Override the URI by setting
+// GMONGO_TEST_URI (e.g. point at a replica set on a different port).
 func testConnectToDb() *Client {
-	// connect to db
-	client, err := ConnectUsingString("mongodb://localhost:27017", "gmongo")
+	uri := os.Getenv("GMONGO_TEST_URI")
+	if uri == "" {
+		uri = "mongodb://localhost:27017"
+	}
+
+	client, err := ConnectUsingString(uri, "gmongo")
 	if err != nil {
 		panic(err)
 	}
