@@ -1,15 +1,13 @@
 module github.com/trapcodeio/gmongo
 
-go 1.23.0
-
-toolchain go1.24.4
+go 1.25.0
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/gookit/goutil v0.7.1
-	github.com/samber/lo v1.51.0
-	github.com/stretchr/testify v1.10.0
-	go.mongodb.org/mongo-driver v1.17.4
+	github.com/gookit/goutil v0.7.4
+	github.com/samber/lo v1.53.0
+	github.com/stretchr/testify v1.11.1
+	go.mongodb.org/mongo-driver v1.17.9
 )
 
 require (
@@ -23,7 +21,7 @@ require (
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	golang.org/x/crypto v0.26.0 // indirect
-	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/text v0.28.0 // indirect
+	golang.org/x/sync v0.20.0 // indirect
+	golang.org/x/text v0.36.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
