@@ -1,7 +1,6 @@
 package gmongo
 
 import (
-	"context"
 	"math"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -63,7 +62,7 @@ func (coll *Model[T]) PaginateAggregateWithCountQuery(page int, perPage int, cou
 
 	// find
 	cursor, err := coll.Native().Aggregate(
-		context.TODO(),
+		coll.ctx(),
 		query,
 	)
 
@@ -73,7 +72,7 @@ func (coll *Model[T]) PaginateAggregateWithCountQuery(page int, perPage int, cou
 
 	// get results
 	var results = make([]bson.M, 0)
-	if err = cursor.All(context.TODO(), &results); err != nil {
+	if err = cursor.All(coll.ctx(), &results); err != nil {
 		return nil, err
 	}
 
@@ -100,7 +99,7 @@ func (coll *Model[T]) Paginate(
 	opts ...*options.FindOptions,
 ) (*Paginated[any], error) {
 	// get total count
-	totalCount, err := coll.Native().CountDocuments(context.TODO(), query)
+	totalCount, err := coll.Native().CountDocuments(coll.ctx(), query)
 	if err != nil {
 		return nil, err
 	}
@@ -126,14 +125,14 @@ func (coll *Model[T]) Paginate(
 	opts = append(opts, options.Find().SetSkip(int64(skip)).SetLimit(int64(perPage)))
 
 	// find
-	cursor, err := coll.Native().Find(context.TODO(), query, opts...)
+	cursor, err := coll.Native().Find(coll.ctx(), query, opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	// get results
 	var results = make([]bson.M, 0)
-	if err = cursor.All(context.TODO(), &results); err != nil {
+	if err = cursor.All(coll.ctx(), &results); err != nil {
 		return nil, err
 	}
 
@@ -209,7 +208,7 @@ func (coll *Model[T]) PaginateAggregateRaw(page int, perPage int, Opt *PaginateA
 
 	// find
 	cursor, err := coll.Native().Aggregate(
-		context.TODO(),
+		coll.ctx(),
 		query,
 	)
 
@@ -219,7 +218,7 @@ func (coll *Model[T]) PaginateAggregateRaw(page int, perPage int, Opt *PaginateA
 
 	// get results
 	var results = make([]bson.M, 0)
-	if err = cursor.All(context.TODO(), &results); err != nil {
+	if err = cursor.All(coll.ctx(), &results); err != nil {
 		return nil, err
 	}
 

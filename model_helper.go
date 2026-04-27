@@ -1,8 +1,6 @@
 package gmongo
 
 import (
-	"context"
-
 	"github.com/samber/lo"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -36,7 +34,7 @@ func (m ModelHelper[T]) GetID() primitive.ObjectID {
 
 // UpdateRaw - Update a model instance with raw data
 func (m ModelHelper[T]) UpdateRaw(update bson.M) (*mongo.UpdateResult, error) {
-	return m.Model.Native().UpdateOne(context.TODO(), bson.M{"_id": m.GetID()}, update)
+	return m.Model.UpdateOne(bson.M{"_id": m.GetID()}, update)
 }
 
 // Update - Update a model instance
@@ -46,5 +44,5 @@ func (m ModelHelper[T]) Update(set bson.M) (*mongo.UpdateResult, error) {
 
 // Delete - Delete a model instance
 func (m ModelHelper[T]) Delete() (*mongo.DeleteResult, error) {
-	return m.Model.Native().DeleteOne(context.TODO(), bson.M{"_id": m.GetID()})
+	return m.Model.DeleteOne(bson.M{"_id": m.GetID()})
 }

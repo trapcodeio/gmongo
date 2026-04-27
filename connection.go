@@ -57,3 +57,46 @@ func ConnectUsingCredentials(credentials *ConnectionCredentials) (*Client, error
 
 	return ConnectUsingString(DbServer, DbName)
 }
+
+// Tx - A transaction handle passed to the callback of Client.Transaction.
+// Use Tx.Context() to enroll raw mongo-driver calls in the transaction, or
+// Tx.Collection(name) for native access to a collection that has no Model.
+type Tx struct {
+	sc mongo.SessionContext
+	db *mongo.Database
+}
+
+// Context returns the session context. Pass it to any raw mongo-driver call
+// to enroll that op in the transaction.
+func (t *Tx) Context() mongo.SessionContext { return t.sc }
+
+// Database returns the *mongo.Database the transaction is running on.
+func (t *Tx) Database() *mongo.Database { return t.db }
+
+// Collection is sugar for tx.Database().Collection(name) — convenient for
+// native ops on collections that don't have a gmongo Model.
+func (t *Tx) Collection(name string) *mongo.Collection { return t.db.Collection(name) }
+
+// Transaction runs fn inside a MongoDB transaction. The session lifecycle is
+// managed for the caller. Return an error from fn to abort; nil to commit.
+//
+// Inside fn, use Model[T].WithTx(tx) to get a transaction-bound model, or
+// tx.Context() / tx.Collection(name) for native mongo-driver access.
+//
+// Note: MongoDB transactions require a replica set or sharded cluster.
+func (c *Client) Transaction(fn func(tx *Tx) error, opts ...*options.TransactionOptions) error {
+	session, err := c.MongoClient.StartSession()
+	if err != nil {
+		return err
+	}
+	defer session.EndSession(context.TODO())
+
+	_, err = session.WithTransaction(
+		context.TODO(),
+		func(sc mongo.SessionContext) (interface{}, error) {
+			return nil, fn(&Tx{sc: sc, db: c.Database})
+		},
+		opts...,
+	)
+	return err
+}

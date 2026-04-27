@@ -26,6 +26,27 @@ type Model[T ModelData] struct {
 	CollectionName string
 	PublicFields   []string
 	Native         func() *mongo.Collection
+	txCtx          mongo.SessionContext
+}
+
+// ctx returns the session context if this Model is bound to a transaction
+// (via WithTx), otherwise context.TODO(). All CRUD methods route through this.
+func (coll *Model[T]) ctx() context.Context {
+	if coll.txCtx != nil {
+		return coll.txCtx
+	}
+	return context.TODO()
+}
+
+// WithTx returns a copy of the model bound to the given transaction. All
+// operations on the returned model are enrolled in the transaction.
+//
+//	accounts := AccountModel.WithTx(tx)
+//	accounts.UpdateOne(...)
+func (coll *Model[T]) WithTx(tx *Tx) *Model[T] {
+	clone := *coll
+	clone.txCtx = tx.sc
+	return &clone
 }
 
 // CreateModel - Create a new model with default values
@@ -76,7 +97,7 @@ func LinkModel[T ModelData](model *Model[T], db *mongo.Database) {
 
 // FindOneAs - Find one document and decode it into a different struct
 func (coll *Model[T]) FindOneAs(result interface{}, filter interface{}, opts ...*options.FindOneOptions) error {
-	err := coll.Native().FindOne(context.TODO(), filter, opts...).Decode(result)
+	err := coll.Native().FindOne(coll.ctx(), filter, opts...).Decode(result)
 	return err
 }
 
@@ -99,17 +120,31 @@ func (coll *Model[T]) FindOneById(id primitive.ObjectID, opts ...*options.FindOn
 
 // DeleteOne Delete - Delete model from database
 func (coll *Model[T]) DeleteOne(filter interface{}, opts ...*options.DeleteOptions) (*mongo.DeleteResult, error) {
-	return coll.Native().DeleteOne(context.TODO(), filter, opts...)
+	return coll.Native().DeleteOne(coll.ctx(), filter, opts...)
 }
 
 // UpdateOne - Update model in database
 func (coll *Model[T]) UpdateOne(filter interface{}, update interface{}, opts ...*options.UpdateOptions) (*mongo.UpdateResult, error) {
-	return coll.Native().UpdateOne(context.TODO(), filter, update, opts...)
+	return coll.Native().UpdateOne(coll.ctx(), filter, update, opts...)
+}
+
+// InsertOne - Insert a single document
+func (coll *Model[T]) InsertOne(doc T, opts ...*options.InsertOneOptions) (*mongo.InsertOneResult, error) {
+	return coll.Native().InsertOne(coll.ctx(), doc, opts...)
+}
+
+// InsertMany - Insert multiple documents
+func (coll *Model[T]) InsertMany(docs []T, opts ...*options.InsertManyOptions) (*mongo.InsertManyResult, error) {
+	payload := make([]interface{}, len(docs))
+	for i, d := range docs {
+		payload[i] = d
+	}
+	return coll.Native().InsertMany(coll.ctx(), payload, opts...)
 }
 
 // Count - Count documents in database
 func (coll *Model[T]) Count(filter interface{}, opts ...*options.CountOptions) (int64, error) {
-	return coll.Native().CountDocuments(context.TODO(), filter, opts...)
+	return coll.Native().CountDocuments(coll.ctx(), filter, opts...)
 }
 
 // Exists - Check if document exists
@@ -135,17 +170,18 @@ func (coll *Model[T]) CountAggregate(pipeline []interface{}, opts ...*options.Ag
 	countPipeline := append(pipeline, bson.D{{"$count", "count"}})
 
 	// Run the aggregation
-	cursor, err := coll.Native().Aggregate(context.TODO(), countPipeline, opts...)
+	ctx := coll.ctx()
+	cursor, err := coll.Native().Aggregate(ctx, countPipeline, opts...)
 	if err != nil {
 		return 0, err
 	}
-	defer cursor.Close(context.TODO())
+	defer cursor.Close(ctx)
 
 	// Get the result
 	var result struct {
 		Count int64 `bson:"count"`
 	}
-	if cursor.Next(context.TODO()) {
+	if cursor.Next(ctx) {
 		err = cursor.Decode(&result)
 		if err != nil {
 			return 0, err
@@ -203,12 +239,13 @@ func (coll *Model[T]) Helpers(model T) *ModelHelper[T] {
 // Aggregate - Aggregate
 func (coll *Model[T]) Aggregate(pipeline interface{}, opts ...*options.AggregateOptions) ([]bson.M, error) {
 	var results = make([]bson.M, 0)
-	cursor, err := coll.Native().Aggregate(context.TODO(), pipeline, opts...)
+	ctx := coll.ctx()
+	cursor, err := coll.Native().Aggregate(ctx, pipeline, opts...)
 	if err != nil {
 		return results, err
 	}
 
-	if err = cursor.All(context.TODO(), &results); err != nil {
+	if err = cursor.All(ctx, &results); err != nil {
 		return results, err
 	}
 
@@ -217,12 +254,13 @@ func (coll *Model[T]) Aggregate(pipeline interface{}, opts ...*options.Aggregate
 
 // AggregateAs - Aggregate with custom
 func (coll *Model[T]) AggregateAs(result interface{}, pipeline interface{}, opts ...*options.AggregateOptions) error {
-	cursor, err := coll.Native().Aggregate(context.TODO(), pipeline, opts...)
+	ctx := coll.ctx()
+	cursor, err := coll.Native().Aggregate(ctx, pipeline, opts...)
 	if err != nil {
 		return err
 	}
 
-	if err = cursor.All(context.TODO(), result); err != nil {
+	if err = cursor.All(ctx, result); err != nil {
 		return err
 	}
 
@@ -232,12 +270,13 @@ func (coll *Model[T]) AggregateAs(result interface{}, pipeline interface{}, opts
 // Find - Find documents
 func (coll *Model[T]) Find(filter interface{}, opts ...*options.FindOptions) ([]T, error) {
 	var results = make([]T, 0)
-	cursor, err := coll.Native().Find(context.TODO(), filter, opts...)
+	ctx := coll.ctx()
+	cursor, err := coll.Native().Find(ctx, filter, opts...)
 	if err != nil {
 		return results, err
 	}
 
-	if err = cursor.All(context.TODO(), &results); err != nil {
+	if err = cursor.All(ctx, &results); err != nil {
 		return results, err
 	}
 
@@ -246,12 +285,13 @@ func (coll *Model[T]) Find(filter interface{}, opts ...*options.FindOptions) ([]
 
 // FindAs - Find documents and decode it into a different struct
 func (coll *Model[T]) FindAs(result interface{}, filter interface{}, opts ...*options.FindOptions) error {
-	cursor, err := coll.Native().Find(context.TODO(), filter, opts...)
+	ctx := coll.ctx()
+	cursor, err := coll.Native().Find(ctx, filter, opts...)
 	if err != nil {
 		return err
 	}
 
-	if err = cursor.All(context.TODO(), result); err != nil {
+	if err = cursor.All(ctx, result); err != nil {
 		return err
 	}
 
