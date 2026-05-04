@@ -27,6 +27,38 @@ func (a *User) GetID() primitive.ObjectID {
 	return a.ID
 }
 
+type Stamps struct {
+	ID        primitive.ObjectID `bson:"_id"`
+	CreatedAt int64              `bson:"createdAt"`
+}
+
+type StampedUser struct {
+	Stamps `bson:",inline"`
+	Name   string `bson:"name"`
+	Age    int    `bson:"age"`
+}
+
+func (u *StampedUser) GetID() primitive.ObjectID { return u.ID }
+
+func TestModel_GetPublicFields_Inline(t *testing.T) {
+	m := CreateModel[*StampedUser]("stamped")
+	m.PublicFields = []string{"_id", "createdAt", "name"}
+
+	id := NewId()
+	u := &StampedUser{
+		Stamps: Stamps{ID: id, CreatedAt: 1700000000},
+		Name:   "John",
+		Age:    20,
+	}
+
+	got := m.GetPublicFields(u)
+	assert.EqualValues(t, bson.M{
+		"_id":       id,
+		"createdAt": int64(1700000000),
+		"name":      "John",
+	}, got)
+}
+
 func TestModel(t *testing.T) {
 	client := testConnectToDb()
 
